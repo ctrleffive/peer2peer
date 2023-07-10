@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <base href="/">
+  <link rel="icon" type="image/svg+xml" href="/assets/logo.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!--  -->
+  <script type="module" src="/main.js"></script>
+  <!--  -->
+  <title>P2P</title>
+</head>
+
+<!-- hidden -->
+
+<body
+  class="flex items-center justify-center h-screen overflow-hidden text-center bg-gradient-to-br from-green-100 to-cyan-200">
+  <div class="flex flex-col space-y-5 text-sm text-gray-500 items-center">
+    <div class="flex space-x-5" id="startPeerButtons">
+      <button type="button"
+        class="shadow-md w-full rounded-full px-6 py-3 bg-white border-indigo-500 whitespace-nowrap startPeerButton"
+        data-variant="A">Choose
+        A</button>
+      <button type="button"
+        class="shadow-md w-full rounded-full px-6 py-3 bg-white border-indigo-500 whitespace-nowrap startPeerButton"
+        data-variant="B">Choose
+        B</button>
+    </div>
+    <div class="hidden flex-col" id="sendButtonWrap">
+      <input type="file" hidden name="" id="filePicker">
+      <label for="filePicker" id="filePickerButton"
+        class="shadow-lg hover:shadow-xl w-full rounded-full px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white whitespace-nowrap cursor-pointer">Send
+        file</label>
+    </div>
+    <div class="font-extrabold text-transparent text-5xl bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500 hidden"
+      id="transferProgress">
+      30%</div>
+    <a class="text-blue-500 hidden cursor-pointer" id="downloadLink" href="#">Download</a>
+  </div>
+</body>
+
+</html>
