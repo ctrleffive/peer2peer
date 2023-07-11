@@ -1,6 +1,12 @@
 import "./style.css";
 import { Peer } from "peerjs";
 
+const startPeerButtons = document.getElementById("startPeerButtons");
+const sendButtonWrap = document.getElementById("sendButtonWrap");
+const transferProgress = document.getElementById("transferProgress");
+const downloadLink = document.getElementById("downloadLink");
+const filePickerButton = document.getElementById("filePickerButton");
+
 const delay = (timeout) => {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -20,12 +26,6 @@ const peer = {
   },
 };
 
-const startPeerButtons = document.getElementById("startPeerButtons");
-const sendButtonWrap = document.getElementById("sendButtonWrap");
-const transferProgress = document.getElementById("transferProgress");
-const downloadLink = document.getElementById("downloadLink");
-const filePickerButton = document.getElementById("filePickerButton");
-
 const connectToRemote = (id) => {
   return peer.peer.connect(id, {
     reliable: true,
@@ -44,6 +44,10 @@ const setProgress = async (value) => {
     await delay(2000);
     sendButtonWrap.classList.replace("hidden", "flex");
     transferProgress.classList.add("hidden");
+  }
+
+  if (progress == 0) {
+    downloadLink.classList.add("hidden");
   }
 };
 
@@ -144,14 +148,14 @@ document.getElementById("filePicker").onchange = async (event) => {
     },
   });
 
-  const chunkSize = 40000;
+  const chunkSize = 2000;
   for (let start = 0; start < file.size; start += chunkSize) {
-    const chunk = file.slice(start, start + chunkSize + 1);
+    const chunk = file.slice(start, start + chunkSize);
     peer.remote.send({
       type: "chunk",
       data: chunk,
     });
-    await delay(100);
+    await delay(1);
   }
   peer.remote.send({ type: "completed" });
   filePickerButton.innerText = "Send another file";
