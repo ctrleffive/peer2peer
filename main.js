@@ -68,7 +68,7 @@ const triggerFileDownload = () => {
 const startPeer = async (variant) => {
   startPeerButtons.innerText = "starting...";
 
-  const appId = "chandu-";
+  const appId = "ctrleffive-";
   const otherVariant = variant == "A" ? "B" : "A";
 
   peer.peer = new Peer(`${appId}${variant}`);
