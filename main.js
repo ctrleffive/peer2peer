@@ -54,31 +54,33 @@ const devicesOnlinePath = "devicesOnline";
 onValue(ref(fireDb, devicesOnlinePath), (snapshot) => {
   peer.devicesOnline = snapshot.val() || {};
 
-  delete peer.devicesOnline[peer.peer.id];
+  if (!peer.remote?.peer) {
+    delete peer.devicesOnline[peer.peer.id];
 
-  startPeerButtonsWrap.innerHTML = "";
+    startPeerButtonsWrap.innerHTML = "";
 
-  if (Object.keys(peer.devicesOnline).length > 0) {
-    helperMessage.innerText = "Choose a device to connect.";
-  } else {
-    helperMessage.innerText = "Waiting for connections...";
-  }
-
-  for (const peerId in peer.devicesOnline) {
-    if ((Date.now() - peer.devicesOnline[peerId].timeAdded) > 300000) {
-      deRegisterDevice(peerId);
+    if (Object.keys(peer.devicesOnline).length > 0) {
+      helperMessage.innerText = "Choose a device to connect.";
+    } else {
+      helperMessage.innerText = "Waiting for connections...";
     }
 
-    const button = document.createElement("button");
-    button.innerHTML = `
-    <button type="button" class="dark:bg-opacity-20 dark:bg-black bg-white w-12 h-12 bg-opacity-20 rounded-full text-3xl">${peer.devicesOnline[peerId].emoji}</button>`;
-    button.onclick = (event) => {
-      event.preventDefault();
-      helperMessage.innerText = "connecting...";
-      startPeerButtonsWrap.classList.add("hidden");
-      connectToRemote(peerId);
-    };
-    startPeerButtonsWrap.append(button);
+    for (const peerId in peer.devicesOnline) {
+      if (Date.now() - peer.devicesOnline[peerId].timeAdded > 300000) {
+        deRegisterDevice(peerId);
+      }
+
+      const button = document.createElement("button");
+      button.innerHTML = `
+    <button type="button" class="dark:bg-opacity-20 dark:bg-black bg-white w-12 h-12 bg-opacity-20 rounded-full text-3xl discovered">${peer.devicesOnline[peerId].emoji}</button>`;
+      button.onclick = (event) => {
+        event.preventDefault();
+        helperMessage.innerText = "connecting...";
+        startPeerButtonsWrap.classList.add("hidden");
+        connectToRemote(peerId);
+      };
+      startPeerButtonsWrap.append(button);
+    }
   }
 });
 
@@ -101,7 +103,7 @@ const registerDevice = (peerId) => {
 };
 
 const deRegisterDevice = (peerId) => {
-    remove(ref(fireDb, devicesOnlinePath + "/" + peerId));
+  remove(ref(fireDb, devicesOnlinePath + "/" + peerId));
 };
 
 peer.peer.on("open", (peerId) => {
@@ -206,7 +208,7 @@ document.getElementById("filePicker").onchange = async (event) => {
     },
   });
 
-  const chunkSize = 2000;
+  const chunkSize = 3000;
   for (let start = 0; start < file.size; start += chunkSize) {
     const chunk = file.slice(start, start + chunkSize);
     peer.remote.send({
