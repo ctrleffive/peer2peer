@@ -38,6 +38,7 @@ const peer = {
   fileData: {
     meta: {},
     data: [],
+    size: 0,
   },
 };
 
@@ -68,8 +69,18 @@ onValue(ref(fireDb, devicesOnlinePath), (snapshot) => {
       }
 
       const button = document.createElement("button");
-      button.innerHTML = `
-    <button type="button" class="dark:bg-opacity-20 dark:bg-black bg-white w-12 h-12 bg-opacity-20 rounded-full text-3xl discovered">${peer.devicesOnline[peerId].emoji}</button>`;
+      button.innerText = peer.devicesOnline[peerId].emoji;
+      button.classList.add(
+        "dark:bg-opacity-20",
+        "dark:bg-black",
+        "bg-white",
+        "w-12",
+        "h-12",
+        "bg-opacity-20",
+        "rounded-full",
+        "text-3xl",
+        "discovered"
+      );
       button.onclick = (event) => {
         event.preventDefault();
         helperMessage.innerText = "connecting...";
@@ -115,12 +126,13 @@ peer.peer.on("open", (peerId) => {
 });
 
 peer.peer.on("connection", async (connection) => {
-  if (!peer.remote) {
+  if (!peer.remote?.peerConnection?.connectionState) {
     if (peer.peer.id != connection.peer) {
       helperMessage.innerText = `Connected to: ${
         peer.devicesOnline[connection.peer].emoji
       }`;
       peer.remote = connectToRemote(connection.peer);
+      transferProgress.classList.add("hidden");
       await delay(1000);
       startPeerButtonsWrap.remove();
       sendButtonWrap.classList.replace("hidden", "flex");
@@ -130,41 +142,38 @@ peer.peer.on("connection", async (connection) => {
     const { type, data } = incoming;
     if (type == "meta") {
       setProgress(0);
+      peer.fileData.size = 0;
       peer.fileData.meta = data;
-      peer.fileData.data = new ArrayBuffer(0);
+      peer.fileData.data = [];
       downloadLink.classList.add("hidden");
     } else if (type == "chunk") {
-      const totalSize = peer.fileData.meta.size;
+      if (peer.fileData.meta) {
+        const totalSize = peer.fileData.meta.size;
+        peer.fileData.size += data.byteLength;
+        peer.fileData.data.push(data);
+        const progress = (100 * peer.fileData.size) / totalSize;
+        setProgress(progress);
+        peer.remote.send({
+          type: "progress",
+          data: progress,
+        });
 
-      const newBuffer = new Uint8Array(
-        peer.fileData.data.byteLength + data.byteLength
-      );
-      newBuffer.set(new Uint8Array(peer.fileData.data), 0);
-      newBuffer.set(new Uint8Array(data), peer.fileData.data.byteLength);
-
-      peer.fileData.data = newBuffer.buffer;
-      const sizeSoFar = peer.fileData.data.byteLength;
-      const progress = (100 * sizeSoFar) / totalSize;
-
-      setProgress(progress);
-      peer.remote.send({
-        type: "progress",
-        data: progress,
-      });
+        if (progress == 100) {
+          triggerFileDownload();
+          setProgress(100);
+        }
+      }
     } else if (type == "progress") {
       setProgress(data);
-    } else if (type == "completed") {
-      setProgress(100);
-      triggerFileDownload();
     }
   });
 });
 
 const setProgress = async (value) => {
-  const progress = Math.round(value);
+  const progress = Math.round(value * 100) / 100;
   sendButtonWrap.classList.replace("flex", "hidden");
   transferProgress.classList.remove("hidden");
-  transferProgress.innerText = `${progress}%`;
+  transferProgress.innerText = `${progress.toFixed(2).padStart(4, "0")}%`;
 
   if (progress == 100) {
     await delay(2000);
@@ -180,15 +189,17 @@ const setProgress = async (value) => {
 const triggerFileDownload = () => {
   downloadLink.classList.remove("hidden");
 
-  const { meta, data } = peer.fileData;
+  const { data, meta } = peer.fileData;
 
-  const blob = new Blob([data], { type: meta.type });
+  const blob = new Blob(data, { type: meta.type });
   const objectURL = URL.createObjectURL(blob);
 
   downloadLink.href = objectURL;
   downloadLink.href = URL.createObjectURL(blob);
   downloadLink.download = meta.name;
   downloadLink.click();
+
+  peer.fileData.meta = null;
 };
 
 document.getElementById("filePicker").onchange = async (event) => {
@@ -207,14 +218,18 @@ document.getElementById("filePicker").onchange = async (event) => {
   });
 
   const chunkSize = 3000;
-  for (let start = 0; start < file.size; start += chunkSize) {
-    const chunk = file.slice(start, start + chunkSize);
+  let nextStartByteIndex = 0;
+  do {
+    const chunk = file.slice(
+      nextStartByteIndex,
+      nextStartByteIndex + chunkSize
+    );
+    nextStartByteIndex += chunkSize;
     peer.remote.send({
       type: "chunk",
       data: chunk,
     });
-  }
-  setProgress(100);
-  peer.remote.send({ type: "completed" });
+    await delay(1);
+  } while (nextStartByteIndex < file.size);
   filePickerButton.innerText = "Send another file";
 };
