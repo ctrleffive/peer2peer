@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set, remove } from "firebase/database";
 //
 import "./style.css";
+import emojis from "./emojis.json";
 
 const fireApp = initializeApp({
   apiKey: "AIzaSyD_FqBQVJ8OCvhxbl25nWQzMS3Wzo12zcQ",
@@ -23,12 +24,8 @@ const helperMessage = document.getElementById("helperMessage");
 const deviceEmojiWrap = document.getElementById("deviceEmojiWrap");
 
 const deviceEmoji = (() => {
-  const emojiStart = 0x1f601; // Start of emoji range in ASCII
-  const emojiEnd = 0x1f64f; // End of emoji range in ASCII
-
-  const emojiCode =
-    Math.floor(Math.random() * (emojiEnd - emojiStart + 1)) + emojiStart;
-  const emoji = String.fromCodePoint(emojiCode);
+  const emojiIndex = Math.floor(Math.random() * (emojis.length - 1) + 0);
+  const emoji = emojis[emojiIndex];
   deviceEmojiWrap.innerHTML = emoji;
   return emoji;
 })();
@@ -157,6 +154,7 @@ peer.peer.on("connection", async (connection) => {
     } else if (type == "progress") {
       setProgress(data);
     } else if (type == "completed") {
+      setProgress(100);
       triggerFileDownload();
     }
   });
@@ -216,6 +214,7 @@ document.getElementById("filePicker").onchange = async (event) => {
       data: chunk,
     });
   }
+  setProgress(100);
   peer.remote.send({ type: "completed" });
   filePickerButton.innerText = "Send another file";
 };
