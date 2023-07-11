@@ -61,7 +61,7 @@ onValue(ref(fireDb, devicesOnlinePath), (snapshot) => {
   if (Object.keys(peer.devicesOnline).length > 0) {
     helperMessage.innerText = "Choose a device to connect.";
   } else {
-    helperMessage.innerText = "waiting for devices...";
+    helperMessage.innerText = "Waiting for connections...";
   }
 
   for (const peerId in peer.devicesOnline) {
