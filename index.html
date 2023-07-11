@@ -23,7 +23,8 @@
   class="h-full overflow-hidden text-center bg-gradient-to-br from-green-100 to-cyan-200 dark:from-indigo-950 dark:to-cyan-950 font-mono text-sm select-none">
   <div class="h-full w-full flex flex-col justify-between">
     <div class="flex flex-col h-full overflow-hidden overflow-y-auto items-center md:justify-center px-6">
-      <div class="my-6 dark:text-white">
+      <!--  -->
+      <div class="my-6 dark:text-white effectUp">
         <div class="text-7xl mb-5 mt-6 sm:mt-0" id="deviceEmojiWrap"></div>
         <div class="text-2xl">
           <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500 font-extrabold">
@@ -32,30 +33,39 @@
         </div>
         <div class="mt-2 opacity-70" id="helperMessage">starting...</div>
       </div>
+      <!--  -->
       <div class="text-gray-500 dark:text-gray-200">
-        <div class="flex gap-5 max-w-3xl mt-2 flex-wrap items-center justify-center" id="startPeerButtonsWrap"></div>
-        <div class="space-y-5 flex flex-col items-center min-h-[200px]">
-          <div class="hidden flex-col items-center" id="sendButtonWrap">
+        <!--  -->
+        <div class="flex gap-5 max-w-3xl pt-2 min-h-[60px] flex-wrap items-center justify-center" id="startPeerButtonsWrap"></div>
+        <!--  -->
+        <div class="hidden flex-col items-center mt-4 min-h-[90px]" id="postConnectWrap">
+          <!--  -->
+          <div class="hidden flex-col items-center effectUp" id="sendButtonWrap">
             <input type="file" hidden name="" id="filePicker">
             <label for="filePicker" id="filePickerButton"
               class="shadow-lg hover:shadow-xl rounded-md px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white whitespace-nowrap cursor-pointer">Send
               a file</label>
           </div>
+          <!--  -->
           <div
-            class="font-extrabold text-5xl text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500 hidden"
+            class="font-extrabold text-5xl text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500 hidden effectUp"
             id="transferProgress">0%</div>
-          <a class="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500 hidden" id="downloadLink"
+          <!--  -->
+          <a class="mt-5 text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500 hidden effectUp" id="downloadLink"
             href="#">Download</a>
+          <!--  -->
         </div>
       </div>
     </div>
-    <div class="opacity-50 text-xs dark:text-white p-5">
+    <!--  -->
+    <div class="opacity-50 text-xs dark:text-white px-5 py-7">
       <a href="/">reset</a>
       <span class="opacity-25">|</span>
       <a target="_blank" class="whitespace-nowrap" href="https://github.com/ctrleffive/p2p">source</a>
       <span class="opacity-25">|</span>
       <a target="_blank" class="whitespace-nowrap" href="https://chandujs.com">chandujs.com</a>
     </div>
+    <!--  -->
   </div>
 </body>
 
