@@ -29,16 +29,21 @@
         <div class="text-2xl">
           <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500 font-extrabold">
             P2P</span>
-          File Transfer
+          Data Transfer
         </div>
         <div class="mt-2 opacity-70" id="helperMessage">starting...</div>
       </div>
       <!--  -->
       <div class="text-gray-500 dark:text-gray-200">
         <!--  -->
-        <div class="flex gap-5 max-w-3xl pt-2 min-h-[60px] flex-wrap items-center justify-center" id="startPeerButtonsWrap"></div>
+        <div class="flex gap-5 max-w-3xl pt-2 min-h-[60px] flex-wrap items-center justify-center"
+          id="startPeerButtonsWrap"></div>
         <!--  -->
         <div class="hidden flex-col items-center mt-4 min-h-[90px]" id="postConnectWrap">
+          <!--  -->
+          <input type="text"
+            class="bg-white dark:bg-black dark:bg-opacity-20 bg-opacity-50 transition-all shadow-sm focus:shadow-lg textblack dark:text-cyan-100 rounded-md w-72 px-4 py-3 bg-transparent border-blue-400 effectUp select-text text-center mb-6"
+            autofocus placeholder="send text by typing here..." id="textInput">
           <!--  -->
           <div class="hidden flex-col items-center effectUp" id="sendButtonWrap">
             <input type="file" hidden name="" id="filePicker">
@@ -51,8 +56,8 @@
             class="font-extrabold text-5xl text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500 hidden effectUp"
             id="transferProgress">0%</div>
           <!--  -->
-          <a class="mt-5 text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500 hidden effectUp" id="downloadLink"
-            href="#">Download</a>
+          <a class="mt-5 text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500 hidden effectUp"
+            id="downloadLink" href="#">Download again</a>
           <!--  -->
         </div>
       </div>

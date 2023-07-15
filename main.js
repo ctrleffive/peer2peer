@@ -37,6 +37,8 @@ const sendButtonWrap = document.getElementById("sendButtonWrap");
 const filePickerButton = document.getElementById("filePickerButton");
 // Wrap that holds all post connection functionalities.
 const postConnectWrap = document.getElementById("postConnectWrap");
+const filePicker = document.getElementById("filePicker");
+const textInput = document.getElementById("textInput");
 /**
  * Assigned emoji of the active session.
  */
@@ -52,13 +54,13 @@ const startPeerButtonsWrap = document.getElementById("startPeerButtonsWrap");
 /**
  * Get a random emoji from preset emoji list.
  */
-const deviceEmoji = (() => {
+const getDeviceEmoji = () => {
   const emojiIndex = Math.floor(Math.random() * (emojis.length - 1) + 0);
   const emoji = emojis[emojiIndex];
   // And show in the UI.
   deviceEmojiWrap.innerHTML = emoji;
   return emoji;
-})();
+};
 
 /**
  * State of the app.
@@ -186,7 +188,7 @@ const registerDevice = (peerId) => {
   if (!state.devicesOnline[peerId]) {
     set(ref(fireDb, devicesOnlinePath + "/" + peerId), {
       peerId,
-      emoji: deviceEmoji,
+      emoji: getDeviceEmoji(),
       timeAdded: Date.now(),
     });
   }
@@ -231,6 +233,23 @@ state.peer.on("connection", async (connection) => {
       sendButtonWrap.classList.replace("hidden", "flex");
     }
   }
+
+  const onRemoteDisconnection = async () => {
+    helperMessage.innerText = 'Disconnected!';
+    postConnectWrap.classList.replace("flex", "hidden");
+    sendButtonWrap.classList.replace("flex", "hidden");
+    state.remote = null
+    textInput.value = "";
+    state.fileData.size = 0;
+    state.fileData.data = [];
+    await delay(2000);
+    startPeerButtonsWrap.classList.remove("hidden");
+    checkForEmptyConnections();
+  };
+
+  connection.on("close", onRemoteDisconnection);
+  connection.on("error", onRemoteDisconnection);
+
   connection.on("data", async (incomingData) => {
     const { type, data } = incomingData;
 
@@ -279,6 +298,10 @@ state.peer.on("connection", async (connection) => {
             setProgress(100);
           }
         }
+        break;
+
+      case "text":
+        textInput.value = data;
         break;
 
       case "progress":
@@ -338,7 +361,7 @@ const triggerFileDownload = () => {
 };
 
 // Listen for file picker events.
-document.getElementById("filePicker").onchange = async (event) => {
+filePicker.onchange = async (event) => {
   event.preventDefault();
   const file = event.target.files[0];
   if (!file) return;
@@ -381,3 +404,14 @@ document.getElementById("filePicker").onchange = async (event) => {
   //
   filePickerButton.innerText = "Send another file";
 };
+
+// Listen for input change events.
+textInput.addEventListener("input", async (event) => {
+  event.preventDefault();
+  const data = event.target.value?.trim();
+
+  state.remote.send({
+    type: "text",
+    data,
+  });
+});
