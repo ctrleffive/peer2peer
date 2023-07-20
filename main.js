@@ -21,6 +21,11 @@ const fireDb = getDatabase(fireApp);
 const devicesOnlinePath = "devicesOnline";
 
 /**
+ * Body is the file drop area for file upload.
+ */
+const dropArea = document.body;
+
+/**
  * Download file link after data is ready.
  */
 const downloadLink = document.getElementById("downloadLink");
@@ -73,6 +78,7 @@ const state = {
    * We have the id-emoji relation from the firebase database.
    */
   peer: new Peer(),
+  emoji: getDeviceEmoji(),
   /** @type {import('peerjs').DataConnection} */
   remote: null,
   devicesOnline: {},
@@ -103,33 +109,33 @@ onChildAdded(ref(fireDb, devicesOnlinePath), (snapshot) => {
     // Remove all connections that are added 5 minutes ago. We don't need those.
     if (Date.now() - device.timeAdded > 300000) {
       deRegisterDevice(device.peerId);
+    } else {
+      const button = document.createElement("button");
+      button.innerText = device.emoji;
+      button.setAttribute("data-id", device.peerId);
+      button.classList.add(
+        "dark:bg-opacity-20",
+        "dark:bg-black",
+        "bg-white",
+        "w-12",
+        "h-12",
+        "bg-opacity-20",
+        "rounded-full",
+        "text-3xl",
+        "discovered"
+      );
+      button.onclick = (event) => {
+        event.preventDefault();
+        helperMessage.innerText = "connecting...";
+        // Once a connection is clicked, hide other connections.
+        startPeerButtonsWrap.classList.add("hidden");
+        connectToRemote(device.peerId);
+      };
+      // Add button to the list.
+      startPeerButtonsWrap.append(button);
+      // Syncing to the state.
+      state.devicesOnline[device.peerId] = device;
     }
-
-    const button = document.createElement("button");
-    button.innerText = device.emoji;
-    button.setAttribute("data-id", device.peerId);
-    button.classList.add(
-      "dark:bg-opacity-20",
-      "dark:bg-black",
-      "bg-white",
-      "w-12",
-      "h-12",
-      "bg-opacity-20",
-      "rounded-full",
-      "text-3xl",
-      "discovered"
-    );
-    button.onclick = (event) => {
-      event.preventDefault();
-      helperMessage.innerText = "connecting...";
-      // Once a connection is clicked, hide other connections.
-      startPeerButtonsWrap.classList.add("hidden");
-      connectToRemote(device.peerId);
-    };
-    // Add button to the list.
-    startPeerButtonsWrap.append(button);
-    // Syncing to the state.
-    state.devicesOnline[device.peerId] = device;
   }
   checkForEmptyConnections();
 });
@@ -188,7 +194,7 @@ const registerDevice = (peerId) => {
   if (!state.devicesOnline[peerId]) {
     set(ref(fireDb, devicesOnlinePath + "/" + peerId), {
       peerId,
-      emoji: getDeviceEmoji(),
+      emoji: state.emoji,
       timeAdded: Date.now(),
     });
   }
@@ -235,10 +241,10 @@ state.peer.on("connection", async (connection) => {
   }
 
   const onRemoteDisconnection = async () => {
-    helperMessage.innerText = 'Disconnected!';
+    helperMessage.innerText = "Disconnected!";
     postConnectWrap.classList.replace("flex", "hidden");
     sendButtonWrap.classList.replace("flex", "hidden");
-    state.remote = null
+    state.remote = null;
     textInput.value = "";
     state.fileData.size = 0;
     state.fileData.data = [];
@@ -360,12 +366,7 @@ const triggerFileDownload = () => {
   state.fileData.meta = null;
 };
 
-// Listen for file picker events.
-filePicker.onchange = async (event) => {
-  event.preventDefault();
-  const file = event.target.files[0];
-  if (!file) return;
-
+const sendFile = async (file) => {
   // First step. Send the meta data.
   setProgress(0);
   state.remote.send({
@@ -405,6 +406,15 @@ filePicker.onchange = async (event) => {
   filePickerButton.innerText = "Send another file";
 };
 
+// Listen for file picker events.
+filePicker.onchange = async (event) => {
+  event.preventDefault();
+  const file = event.target.files[0];
+  if (!file) return;
+
+  await sendFile(file);
+};
+
 // Listen for input change events.
 textInput.addEventListener("input", async (event) => {
   event.preventDefault();
@@ -415,3 +425,49 @@ textInput.addEventListener("input", async (event) => {
     data,
   });
 });
+
+/**
+ * Only allow drag nd drop if remote connection is available.
+ * and send button is visible (not in the middle of a transfer).
+ */
+const checkIfDroppable = () => {
+  return (
+    state.remote?.peerConnection?.connectionState == "connected" &&
+    !sendButtonWrap.classList.contains("hidden")
+  );
+};
+
+const handleDragOver = (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  if (checkIfDroppable()) {
+    dropArea.setAttribute("data-dragEnabled", "");
+  }
+};
+
+const handleDragOut = (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  dropArea.removeAttribute("data-dragEnabled");
+};
+
+const handleDrop = (event) => {
+  handleDragOut(event);
+
+  if (checkIfDroppable()) {
+    dropArea.removeAttribute("data-dragEnabled");
+
+    const file = event.dataTransfer.files[0];
+
+    // Only one file allowed for now.
+    if (file) {
+      sendFile(file);
+    }
+  }
+};
+
+dropArea.addEventListener("drop", handleDrop);
+dropArea.addEventListener("dragend", handleDragOut);
+dropArea.addEventListener("dragover", handleDragOver);
+dropArea.addEventListener("dragenter", handleDragOver);
+dropArea.addEventListener("dragleave", handleDragOut);
