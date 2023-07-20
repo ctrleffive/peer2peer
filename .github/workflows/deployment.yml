@@ -44,17 +44,14 @@ jobs:
         run: |
           npm install
           npm run build
-      
-      - name: Checkout
-        uses: actions/checkout@v3
-        
-      - name: Setup pages
-        uses: actions/configure-pages@v3
 
       - name: Upload build files
         uses: actions/upload-pages-artifact@v2
         with:
-          path: './dist/'
+          path: './dist'
+        
+      - name: Setup pages
+        uses: actions/configure-pages@v3j
           
       - name: Deploy
         id: deployment
