@@ -190,8 +190,12 @@ const delay = (timeout) => {
  * To add active connection id to online devices db.
  */
 const registerDevice = (peerId) => {
-  // Only add if the id doesn't exist in the db.
-  if (!state.devicesOnline[peerId]) {
+  const currentItem = Object.values(state.devicesOnline).find((item) => {
+    return item.peerId == state.peer || item.emoji == state.emoji;
+  });
+
+  // Only add if the id doesn't exist in the devicesOnline list.
+  if (!currentItem) {
     set(ref(fireDb, devicesOnlinePath + "/" + peerId), {
       peerId,
       emoji: state.emoji,
