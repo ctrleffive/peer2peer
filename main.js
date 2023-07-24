@@ -1,10 +1,10 @@
 import { Peer } from "peerjs";
 import { initializeApp } from "firebase/app";
 import {
-  getDatabase,
   ref,
   set,
   remove,
+  getDatabase,
   onChildAdded,
   onChildRemoved,
 } from "firebase/database";
@@ -24,6 +24,11 @@ const devicesOnlinePath = "devicesOnline";
  * Body is the file drop area for file upload.
  */
 const dropArea = document.body;
+
+const html = document.body.parentElement;
+const mediaMode = "(prefers-color-scheme: dark)";
+const matchMedia = window.matchMedia;
+const themeMeta = document.getElementById("themeMeta");
 
 /**
  * Download file link after data is ready.
@@ -67,6 +72,16 @@ const getDeviceEmoji = () => {
   return emoji;
 };
 
+const initPeer = async () => {
+  state.peer = new Peer();
+  state.emoji = getDeviceEmoji();
+  return new Promise((resolve) => {
+    state.peer.once("open", (peerId) => {
+      resolve(peerId);
+    });
+  });
+};
+
 /**
  * State of the app.
  * This is where the shared variables are.
@@ -77,10 +92,12 @@ const state = {
    * Id will be created by default from peerjs.
    * We have the id-emoji relation from the firebase database.
    */
-  peer: new Peer(),
-  emoji: getDeviceEmoji(),
+  /** @type {import('peerjs').Peer} */
+  peer: null,
+  emoji: null,
   /** @type {import('peerjs').DataConnection} */
   remote: null,
+  focusLostOn: 0,
   devicesOnline: {},
   /**
    * To keep track of the received data.
@@ -93,10 +110,28 @@ const state = {
   },
 };
 
-const connectToRemote = (id) => {
-  return state.peer.connect(id, {
+const connectToRemote = (id, isIncoming = false) => {
+  if (!isIncoming) {
+    helperMessage.innerText = "connecting...";
+  }
+  // Once a connection is clicked, hide other connections.
+  startPeerButtonsWrap.classList.add("hidden");
+  const connection = state.peer.connect(id, {
     reliable: true, // For handling large files.
   });
+
+  delay(4000).then(async () => {
+    // If remote is not connected even after some time, cancel.
+    if (state.remote?.peerConnection?.connectionState != "connected") {
+      helperMessage.innerText = "Device not reachable!";
+      await delay(2000);
+      deRegisterDevice(id);
+      startPeerButtonsWrap.classList.remove("hidden");
+      checkForEmptyConnections();
+    }
+  });
+
+  return connection;
 };
 
 /**
@@ -126,9 +161,6 @@ onChildAdded(ref(fireDb, devicesOnlinePath), (snapshot) => {
       );
       button.onclick = (event) => {
         event.preventDefault();
-        helperMessage.innerText = "connecting...";
-        // Once a connection is clicked, hide other connections.
-        startPeerButtonsWrap.classList.add("hidden");
         connectToRemote(device.peerId);
       };
       // Add button to the list.
@@ -187,21 +219,23 @@ const delay = (timeout) => {
 };
 
 /**
- * To add active connection id to online devices db.
+ * Add active connection id to online devices db.
+ * Also make a new peer connection if peer is not initiated.
  */
-const registerDevice = (peerId) => {
-  const currentItem = Object.values(state.devicesOnline).find((item) => {
-    return item.peerId == state.peer || item.emoji == state.emoji;
-  });
-
-  // Only add if the id doesn't exist in the devicesOnline list.
-  if (!currentItem) {
-    set(ref(fireDb, devicesOnlinePath + "/" + peerId), {
-      peerId,
-      emoji: state.emoji,
-      timeAdded: Date.now(),
-    });
+const registerDevice = async (peerId = null) => {
+  if (state.peer == null) {
+    peerId = await initPeer();
   }
+
+  if (!state.peer?.open) {
+    state.peer?.reconnect();
+  }
+
+  set(ref(fireDb, devicesOnlinePath + "/" + peerId), {
+    peerId,
+    emoji: state.emoji,
+    timeAdded: Date.now(),
+  });
 };
 
 /**
@@ -211,9 +245,10 @@ const deRegisterDevice = (peerId) => {
   remove(ref(fireDb, devicesOnlinePath + "/" + peerId));
 };
 
+registerDevice();
+
 // Set yourself as active once peerjs is connected.
 state.peer.on("open", (peerId) => {
-  registerDevice(peerId);
   // And listen for window focus change.
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
@@ -234,7 +269,7 @@ state.peer.on("connection", async (connection) => {
         state.devicesOnline[connection.peer].emoji
       }`;
       // Respond back & try remote connection.
-      state.remote = connectToRemote(connection.peer);
+      state.remote = connectToRemote(connection.peer, true);
       transferProgress.classList.add("hidden");
       // Show the file transfer button after a while.
       await delay(1000);
@@ -252,7 +287,7 @@ state.peer.on("connection", async (connection) => {
     textInput.value = "";
     state.fileData.size = 0;
     state.fileData.data = [];
-    await delay(2000);
+    await delay(3000);
     startPeerButtonsWrap.classList.remove("hidden");
     checkForEmptyConnections();
   };
@@ -475,3 +510,21 @@ dropArea.addEventListener("dragend", handleDragOut);
 dropArea.addEventListener("dragover", handleDragOver);
 dropArea.addEventListener("dragenter", handleDragOver);
 dropArea.addEventListener("dragleave", handleDragOut);
+
+const setAppearance = (isDarkMode = false) => {
+  if (isDarkMode) {
+    themeMeta.content = "#1e1b4b";
+    html.classList.add("dark");
+  } else {
+    themeMeta.content = "#dcfce7";
+    html.classList.remove("dark");
+  }
+};
+
+if (matchMedia && matchMedia(mediaMode).matches) {
+  setAppearance(true);
+}
+
+window.matchMedia(mediaMode).addEventListener("change", (event) => {
+  setAppearance(event.matches);
+});
