@@ -75,6 +75,7 @@ const getDeviceEmoji = () => {
 const initPeer = async () => {
   state.peer = new Peer();
   state.emoji = getDeviceEmoji();
+  state.remote = null;
   return new Promise((resolve) => {
     state.peer.once("open", (peerId) => {
       resolve(peerId);
@@ -290,6 +291,7 @@ state.peer.on("connection", async (connection) => {
     await delay(3000);
     startPeerButtonsWrap.classList.remove("hidden");
     checkForEmptyConnections();
+    registerDevice();
   };
 
   connection.on("close", onRemoteDisconnection);
