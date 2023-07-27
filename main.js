@@ -224,16 +224,26 @@ const delay = (timeout) => {
  * Also make a new peer connection if peer is not initiated.
  */
 const registerDevice = async (peerId = null) => {
+  let id = peerId;
+  
   if (state.peer == null) {
-    peerId = await initPeer();
+    // If no peer on state, initiate new peer.
+    id = await initPeer();
   }
 
   if (!state.peer?.open) {
+    // If existing peer is not open, try reopen in.
     state.peer?.reconnect();
   }
 
-  set(ref(fireDb, devicesOnlinePath + "/" + peerId), {
-    peerId,
+  // Get local peer id as failsafe.
+  id = id || state.peer?.id;
+
+  // If still nothing, just stop.
+  if (!id) return;
+
+  set(ref(fireDb, devicesOnlinePath + "/" + id), {
+    peerId: id,
     emoji: state.emoji,
     timeAdded: Date.now(),
   });
