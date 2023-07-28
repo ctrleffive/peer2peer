@@ -436,7 +436,7 @@ const sendFile = async (file) => {
    * In that case, having an index helps to later sort it before making the file for download.
    */
   let index = 0;
-  const chunkSize = 3000;
+  const chunkSize = 524288;
   let nextStartByteIndex = 0;
   do {
     const data = file.slice(nextStartByteIndex, nextStartByteIndex + chunkSize);
