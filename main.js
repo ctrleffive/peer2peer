@@ -225,7 +225,7 @@ const delay = (timeout) => {
  */
 const registerDevice = async (peerId = null) => {
   let id = peerId;
-  
+
   if (state.peer == null) {
     // If no peer on state, initiate new peer.
     id = await initPeer();
@@ -352,7 +352,6 @@ state.peer.on("connection", async (connection) => {
           // Once the transfer is complete, trigger the file download.
           if (progress == 100) {
             triggerFileDownload();
-            setProgress(100);
           }
         }
         break;
@@ -371,14 +370,17 @@ state.peer.on("connection", async (connection) => {
 
 const setProgress = async (value) => {
   const progress = Math.round(value * 100) / 100;
+  textInput.classList.add("hidden");
   sendButtonWrap.classList.replace("flex", "hidden");
   transferProgress.classList.remove("hidden");
-  // Rounding to 00.00
-  transferProgress.innerText = `${progress.toFixed(2).padStart(4, "0")}%`;
+  // Rounding to 00
+  transferProgress.innerText = `${progress.toFixed(0)}%`;
 
   // If done, show 100% for a while and hide the progress.
   if (progress == 100) {
+    transferProgress.innerText = 'Done!';
     await delay(2000);
+    textInput.classList.remove("hidden");
     sendButtonWrap.classList.replace("hidden", "flex");
     transferProgress.classList.add("hidden");
   }
@@ -417,6 +419,20 @@ const triggerFileDownload = () => {
   state.fileData.meta = null;
 };
 
+/**
+ * Return the chunk size in mb.
+ */
+const calculateChunkSize = (sizeBytes) => {
+  const maxChunkSize = 1048576 * 10; // 10mb
+  const minChunkSize = 1048576 * 0.1; // 100kb
+
+  // Calculate the chunk size based on the file size
+  const chunkSize = Math.ceil(sizeBytes / 25);
+
+  // Ensure the chunk size is within the desired range
+  return Math.max(minChunkSize, Math.min(maxChunkSize, chunkSize));;
+}
+
 const sendFile = async (file) => {
   // First step. Send the meta data.
   setProgress(0);
@@ -436,7 +452,7 @@ const sendFile = async (file) => {
    * In that case, having an index helps to later sort it before making the file for download.
    */
   let index = 0;
-  const chunkSize = 65535;
+  const chunkSize = calculateChunkSize(file.size);
   let nextStartByteIndex = 0;
   do {
     const data = file.slice(nextStartByteIndex, nextStartByteIndex + chunkSize);
