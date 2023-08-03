@@ -154,6 +154,9 @@ const connectToRemote = (id, isIncoming = false) => {
       postConnectWrap.classList.replace("hidden", "flex");
       sendButtonWrap.classList.replace("hidden", "flex");
       textInput.classList.remove("hidden");
+      helperMessage.innerText = `Connected to: ${
+        state.devicesOnline[id].emoji
+      }`;
     }
   });
 
