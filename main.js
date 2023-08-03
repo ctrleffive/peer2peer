@@ -158,6 +158,15 @@ const connectToRemote = (id, isIncoming = false) => {
   return connection;
 };
 
+// Remove all connections that are added 5 minutes ago.
+setInterval(() => {
+  for (const device of Object.values(state.devicesOnline)) {
+    if (Date.now() - device.timeUpdated > 300000) {
+      deRegisterDevice(device.peerId);
+    }
+  }
+}, 1000);
+
 /**
  * Discovery logic.
  * Listening for connections added from firebase database.
@@ -165,33 +174,28 @@ const connectToRemote = (id, isIncoming = false) => {
 onChildAdded(ref(fireDb, devicesOnlinePath), (snapshot) => {
   const device = snapshot.val();
   if (device.peerId != state.peer.id && !state.devicesOnline[device.peerId]) {
-    // Remove all connections that are added 5 minutes ago. We don't need those.
-    if (Date.now() - device.timeAdded > 300000) {
-      deRegisterDevice(device.peerId);
-    } else {
-      const button = document.createElement("button");
-      button.innerText = device.emoji;
-      button.setAttribute("data-id", device.peerId);
-      button.classList.add(
-        "dark:bg-opacity-20",
-        "dark:bg-black",
-        "bg-white",
-        "w-12",
-        "h-12",
-        "bg-opacity-20",
-        "rounded-full",
-        "text-3xl",
-        "discovered"
-      );
-      button.onclick = (event) => {
-        event.preventDefault();
-        connectToRemote(device.peerId);
-      };
-      // Add button to the list.
-      startPeerButtonsWrap.append(button);
-      // Syncing to the state.
-      state.devicesOnline[device.peerId] = device;
-    }
+    const button = document.createElement("button");
+    button.innerText = device.emoji;
+    button.setAttribute("data-id", device.peerId);
+    button.classList.add(
+      "dark:bg-opacity-20",
+      "dark:bg-black",
+      "bg-white",
+      "w-12",
+      "h-12",
+      "bg-opacity-20",
+      "rounded-full",
+      "text-3xl",
+      "discovered"
+    );
+    button.onclick = (event) => {
+      event.preventDefault();
+      connectToRemote(device.peerId);
+    };
+    // Add button to the list.
+    startPeerButtonsWrap.append(button);
+    // Syncing to the state.
+    state.devicesOnline[device.peerId] = device;
   }
   checkForEmptyConnections();
 });
@@ -268,7 +272,7 @@ const registerDevice = async (peerId = null) => {
   set(ref(fireDb, devicesOnlinePath + "/" + id), {
     peerId: id,
     emoji: state.emoji,
-    timeAdded: Date.now(),
+    timeUpdated: Date.now(),
   });
 };
 
@@ -285,7 +289,9 @@ registerDevice();
 state.peer.on("open", (peerId) => {
   // And listener for window focus change.
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) {
+    if (document.hidden) {
+      deRegisterDevice(peerId);
+    } else {
       registerDevice(peerId);
     }
   });
