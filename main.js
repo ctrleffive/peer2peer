@@ -73,6 +73,7 @@ const getDeviceEmoji = () => {
 };
 
 const initPeer = async () => {
+  state.peer?.destroy();
   state.peer = new Peer();
   state.emoji = getDeviceEmoji();
   state.remote = null;
@@ -111,6 +112,22 @@ const state = {
   },
 };
 
+const destroyRemote = async () => {
+  // TODO: Improve this.
+  postConnectWrap.classList.replace("flex", "hidden");
+  sendButtonWrap.classList.replace("flex", "hidden");
+  textInput.classList.add("hidden");
+
+  textInput.value = "";
+  state.fileData.size = 0;
+  state.fileData.data = [];
+  await delay(2000);
+
+  state.remote = null;
+  startPeerButtonsWrap.classList.remove("hidden");
+  checkForEmptyConnections();
+};
+
 const connectToRemote = (id, isIncoming = false) => {
   if (!isIncoming) {
     helperMessage.innerText = "connecting...";
@@ -121,14 +138,20 @@ const connectToRemote = (id, isIncoming = false) => {
     reliable: true, // For handling large files.
   });
 
+  postConnectWrap.classList.replace("flex", "hidden");
+  sendButtonWrap.classList.replace("flex", "hidden");
+  textInput.classList.add("hidden");
+
   delay(4000).then(async () => {
+    const connectionState = state.remote?.peerConnection?.connectionState;
     // If remote is not connected even after some time, cancel.
-    if (state.remote?.peerConnection?.connectionState != "connected") {
+    if (connectionState != "connected") {
       helperMessage.innerText = "Device not reachable!";
-      await delay(2000);
-      deRegisterDevice(id);
-      startPeerButtonsWrap.classList.remove("hidden");
-      checkForEmptyConnections();
+      destroyRemote(id);
+    } else if (connectionState == "connected") {
+      postConnectWrap.classList.replace("hidden", "flex");
+      sendButtonWrap.classList.replace("hidden", "flex");
+      textInput.classList.remove("hidden");
     }
   });
 
@@ -203,7 +226,7 @@ const checkForEmptyConnections = () => {
     if (Object.keys(state.devicesOnline).length > 0) {
       helperMessage.innerText = "Choose a device to connect.";
     } else {
-      helperMessage.innerText = "Waiting for connections...";
+      helperMessage.innerText = "waiting for connections...";
     }
   }
 };
@@ -226,12 +249,12 @@ const delay = (timeout) => {
 const registerDevice = async (peerId = null) => {
   let id = peerId;
 
-  if (state.peer == null) {
+  if (state.peer == null || state.peer?.destroyed) {
     // If no peer on state, initiate new peer.
     id = await initPeer();
   }
 
-  if (!state.peer?.open) {
+  if (state.peer?.disconnected) {
     // If existing peer is not open, try reopen in.
     state.peer?.reconnect();
   }
@@ -270,6 +293,10 @@ state.peer.on("open", (peerId) => {
   });
 });
 
+// Try reconnecting when disconnected.
+state.peer.on("disconnected", registerDevice);
+state.peer.on("error", () => registerDevice());
+
 // Post connection jobs.
 state.peer.on("connection", async (connection) => {
   // Respond only if remote connection state is not available.
@@ -286,26 +313,21 @@ state.peer.on("connection", async (connection) => {
       await delay(1000);
       postConnectWrap.classList.replace("hidden", "flex");
       startPeerButtonsWrap.classList.add("hidden");
+      textInput.classList.remove("hidden");
       sendButtonWrap.classList.replace("hidden", "flex");
     }
   }
 
-  const onRemoteDisconnection = async () => {
+  connection.on("close", () => {
+    if (state.remote?.peer) {
+      helperMessage.innerText = "reconnecting...";
+      state.remote = connectToRemote(state.remote?.peer, true);
+    }
+  });
+  connection.on("error", async () => {
     helperMessage.innerText = "Disconnected!";
-    postConnectWrap.classList.replace("flex", "hidden");
-    sendButtonWrap.classList.replace("flex", "hidden");
-    state.remote = null;
-    textInput.value = "";
-    state.fileData.size = 0;
-    state.fileData.data = [];
-    await delay(3000);
-    startPeerButtonsWrap.classList.remove("hidden");
-    checkForEmptyConnections();
-    registerDevice();
-  };
-
-  connection.on("close", onRemoteDisconnection);
-  connection.on("error", onRemoteDisconnection);
+    destroyRemote();
+  });
 
   connection.on("data", async (incomingData) => {
     const { type, data } = incomingData;
@@ -378,7 +400,7 @@ const setProgress = async (value) => {
 
   // If done, show 100% for a while and hide the progress.
   if (progress == 100) {
-    transferProgress.innerText = 'Done!';
+    transferProgress.innerText = "Done!";
     await delay(2000);
     textInput.classList.remove("hidden");
     sendButtonWrap.classList.replace("hidden", "flex");
@@ -430,8 +452,8 @@ const calculateChunkSize = (sizeBytes) => {
   const chunkSize = Math.ceil(sizeBytes / 25);
 
   // Ensure the chunk size is within the desired range
-  return Math.max(minChunkSize, Math.min(maxChunkSize, chunkSize));;
-}
+  return Math.max(minChunkSize, Math.min(maxChunkSize, chunkSize));
+};
 
 const sendFile = async (file) => {
   // First step. Send the meta data.
