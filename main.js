@@ -123,6 +123,7 @@ const destroyRemote = async () => {
   state.fileData.data = [];
   await delay(2000);
 
+  state.remote?.close();
   state.remote = null;
   startPeerButtonsWrap.classList.remove("hidden");
   checkForEmptyConnections();
@@ -166,7 +167,7 @@ setTimeout(() => {
       deRegisterDevice(device.peerId);
     }
   }
-}, 5000);
+}, 3000);
 
 /**
  * Discovery logic.
@@ -311,9 +312,6 @@ state.peer.on("connection", async (connection) => {
       helperMessage.innerText = `Connected to: ${
         state.devicesOnline[connection.peer].emoji
       }`;
-      // Once connected to a device, make this unavailable for others.
-      deRegisterDevice(state.peer.id);
-      
       // Respond back & try remote connection.
       state.remote = connectToRemote(connection.peer, true);
       transferProgress.classList.add("hidden");
@@ -323,6 +321,9 @@ state.peer.on("connection", async (connection) => {
       startPeerButtonsWrap.classList.add("hidden");
       textInput.classList.remove("hidden");
       sendButtonWrap.classList.replace("hidden", "flex");
+
+      // Once connected to a device, make this device unavailable for others.
+      deRegisterDevice(state.peer.id);
     }
   }
 
