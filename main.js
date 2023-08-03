@@ -147,7 +147,7 @@ const connectToRemote = (id, isIncoming = false) => {
     // If remote is not connected even after some time, cancel.
     if (connectionState != "connected") {
       helperMessage.innerText = "Device not reachable!";
-      async destroyRemote(id);
+      await destroyRemote(id);
       deRegisterDevice(id);
     } else if (connectionState == "connected") {
       postConnectWrap.classList.replace("hidden", "flex");
