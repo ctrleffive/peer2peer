@@ -283,13 +283,16 @@ registerDevice();
 
 // Set yourself as active once peerjs is connected.
 state.peer.on("open", (peerId) => {
-  // And listen for window focus change.
+  // And listener for window focus change.
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      deRegisterDevice(peerId);
-    } else {
+    if (!document.hidden) {
       registerDevice(peerId);
     }
+  });
+
+  // And listener for window close.
+  window.addEventListener("beforeunload", () => {
+    deRegisterDevice(peerId);
   });
 });
 
