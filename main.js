@@ -147,6 +147,7 @@ const connectToRemote = (id, isIncoming = false) => {
     // If remote is not connected even after some time, cancel.
     if (connectionState != "connected") {
       helperMessage.innerText = "Device not reachable!";
+      deRegisterDevice(id);
       destroyRemote(id);
     } else if (connectionState == "connected") {
       postConnectWrap.classList.replace("hidden", "flex");
@@ -158,14 +159,14 @@ const connectToRemote = (id, isIncoming = false) => {
   return connection;
 };
 
-// Remove all connections that are added 5 minutes ago.
-setInterval(() => {
+// Remove all connections that are added 2 hours ago.
+setTimeout(() => {
   for (const device of Object.values(state.devicesOnline)) {
-    if (Date.now() - device.timeUpdated > 300000) {
+    if (Date.now() - device.timeUpdated > 7200000) {
       deRegisterDevice(device.peerId);
     }
   }
-}, 1000);
+}, 5000);
 
 /**
  * Discovery logic.
@@ -295,11 +296,6 @@ state.peer.on("open", (peerId) => {
       registerDevice(peerId);
     }
   });
-
-  // And listener for window close.
-  window.addEventListener("beforeunload", () => {
-    deRegisterDevice(peerId);
-  });
 });
 
 // Try reconnecting when disconnected.
@@ -315,6 +311,9 @@ state.peer.on("connection", async (connection) => {
       helperMessage.innerText = `Connected to: ${
         state.devicesOnline[connection.peer].emoji
       }`;
+      // Once connected to a device, make this unavailable for others.
+      deRegisterDevice(state.peer.id);
+      
       // Respond back & try remote connection.
       state.remote = connectToRemote(connection.peer, true);
       transferProgress.classList.add("hidden");
@@ -332,10 +331,12 @@ state.peer.on("connection", async (connection) => {
       helperMessage.innerText = "reconnecting...";
       state.remote = connectToRemote(state.remote?.peer, true);
     }
+    registerDevice();
   });
   connection.on("error", async () => {
     helperMessage.innerText = "Disconnected!";
     destroyRemote();
+    registerDevice();
   });
 
   connection.on("data", async (incomingData) => {
