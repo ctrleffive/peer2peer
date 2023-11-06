@@ -1,4 +1,6 @@
 # P2P
+[![Netlify Status](https://api.netlify.com/api/v1/badges/a9de3cff-843b-47a2-b861-a9ad32eec7c4/deploy-status)](https://app.netlify.com/sites/shiny-raindrop-d31239/deploys)
+
 A peer-to-peer data transferring app that transfers data directly between devices regardless of the network, allowing it to work even when the devices are not on the same network.
 
 ## 🙋‍♂️ How to use?
