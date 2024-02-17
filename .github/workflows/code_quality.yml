@@ -1,0 +1,21 @@
+name: Code Quality
+
+on:
+  push:
+    branches-ignore:
+      - "**-wip"
+      - "**-WIP"
+  pull_request:
+
+jobs:
+  Biome:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Biome
+        uses: biomejs/setup-biome@v2
+        with:
+          version: latest
+      - name: Run Biome
+        run: biome ci .

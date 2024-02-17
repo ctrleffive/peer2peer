@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  font-family: 'DM Sans Variable', sans-serif;
+}
+
 * {
   outline: none;
 }
@@ -12,8 +16,8 @@
 
 .discovered {
   animation: discovered ease 0.5s;
-	animation-iteration-count: 1;
-	animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
 }
 
 @keyframes discovered {
